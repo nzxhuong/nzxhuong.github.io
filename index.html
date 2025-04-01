@@ -7,11 +7,26 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>nzxhuong'log</title>
 <link href="assets/css/all-nocdn.css" rel="stylesheet" type="text/css">
+<link href="assets/css/ipython.min.css" rel="stylesheet" type="text/css">
+<link href="assets/css/nikola_ipython.css" rel="stylesheet" type="text/css">
 <meta name="theme-color" content="#5670d4">
 <meta name="generator" content="Nikola (getnikola.com)">
 <link rel="alternate" type="application/rss+xml" title="RSS" hreflang="en" href="rss.xml">
-<link rel="canonical" href="https://example.com/">
-<!--[if lt IE 9]><script src="assets/js/html5.js"></script><![endif]-->
+<link rel="canonical" href="https://nzxhuong.github.io/">
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+    tex2jax: {
+        inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+        displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
+        processEscapes: true
+    },
+    displayAlign: 'left', // Change this to 'center' to center equations.
+    displayIndent: '2em',
+    "HTML-CSS": {
+        styles: {'.MathJax_Display': {"margin": "0em 0em 1em 0em"}}
+    }
+});
+</script><!--[if lt IE 9]><script src="assets/js/html5.js"></script><![endif]--><link rel="prefetch" href="posts/understanding-shannon-information-and-entropy/" type="text/html">
 </head>
 <body>
 <a href="#content" class="sr-only sr-only-focusable">Skip to main content</a>
@@ -22,7 +37,7 @@
 navbar-dark bg-dark
 "><div class="container">
 <!-- This keeps the margins nice -->
-        <a class="navbar-brand" href="https://example.com/">
+        <a class="navbar-brand" href="https://nzxhuong.github.io/">
 
             <span id="blog-title">nzxhuong'log</span>
         </a>
@@ -63,15 +78,46 @@ navbar-dark bg-dark
 
     
 <div class="postindex">
+    <article class="h-entry post-text" itemscope="itemscope" itemtype="http://schema.org/Article"><header><h1 class="p-name entry-title"><a href="posts/understanding-shannon-information-and-entropy/" class="u-url">Understanding Shannon Information and Entropy</a></h1>
+        <div class="metadata">
+            <p class="byline author vcard"><span class="byline-name fn" itemprop="author">
+                Ngo Truong
+            </span></p>
+            <p class="dateline">
+            <a href="posts/understanding-shannon-information-and-entropy/" rel="bookmark">
+            <time class="published dt-published" datetime="2025-04-02T00:11:30+07:00" itemprop="datePublished" title="2025-04-02 00:11">2025-04-02 00:11</time></a>
+            </p>
+        </div>
+    </header><div class="p-summary entry-summary">
+    <div>
+<p>Many materials on this topic start with Claude Shannon’s concept of information. So let’s start with that. <br>
+Information, in Shannon's theory, is defined in the context of transferring a message from a source (transmitter) to a receiver over a channel. Imagine tossing a coin. In this scenario, the coin toss outcome acts as the source (transmitter), and you, observing the outcome, are the receiver.</p>
+<p class="more"><a href="posts/understanding-shannon-information-and-entropy/">Read more…</a></p>
+</div>
+    </div>
+    </article>
 </div>
 
 
 
 
 
-
-
-            </div>
+        
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML" integrity="sha384-3lJUsx1TJHt7BA4udB5KPnDrlkO8T6J6v/op7ui0BbCjvZ9WqV4Xm6DTP6kQ/iBH" crossorigin="anonymous"></script><script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+    tex2jax: {
+        inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+        displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
+        processEscapes: true
+    },
+    displayAlign: 'left', // Change this to 'center' to center equations.
+    displayIndent: '2em',
+    "HTML-CSS": {
+        styles: {'.MathJax_Display': {"margin": "0em 0em 1em 0em"}}
+    }
+});
+</script>
+</div>
             <div class="col-md-3 ">
             <div class="card card-body bg-light">
             <p>
@@ -82,7 +128,7 @@ navbar-dark bg-dark
             Twitter: <a href="#">no</a>
             </p>
 			<p>
-			Using <a href="https://bjlkeng.io/">theme</a> by Brian Keng
+			Using <a href="https://github.com/bjlkeng/bjlkeng.github.io/tree/source/source/themes">theme</a> by <a href="https://bjlkeng.io/">Brian Keng</a>
 			</p>
             <br>
 </div>
