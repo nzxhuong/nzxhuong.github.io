@@ -6,31 +6,31 @@
     xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
                         http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
  <sitemap>
-  <loc>https://example.com/categories/entropy.xml</loc>
-  <lastmod>2025-04-01T17:56:00Z</lastmod>
+  <loc>https://nzxhuong.github.io/categories/entropy.xml</loc>
+  <lastmod>2025-04-01T18:02:00Z</lastmod>
  </sitemap>
  <sitemap>
-  <loc>https://example.com/categories/information-theory.xml</loc>
-  <lastmod>2025-04-01T17:56:00Z</lastmod>
+  <loc>https://nzxhuong.github.io/categories/information-theory.xml</loc>
+  <lastmod>2025-04-01T18:02:00Z</lastmod>
  </sitemap>
  <sitemap>
-  <loc>https://example.com/categories/mathjax.xml</loc>
-  <lastmod>2025-04-01T17:56:00Z</lastmod>
+  <loc>https://nzxhuong.github.io/categories/mathjax.xml</loc>
+  <lastmod>2025-04-01T18:02:00Z</lastmod>
  </sitemap>
  <sitemap>
-  <loc>https://example.com/categories/probability.xml</loc>
-  <lastmod>2025-04-01T17:56:00Z</lastmod>
+  <loc>https://nzxhuong.github.io/categories/probability.xml</loc>
+  <lastmod>2025-04-01T18:02:00Z</lastmod>
  </sitemap>
  <sitemap>
-  <loc>https://example.com/galleries/rss.xml</loc>
-  <lastmod>2025-04-01T17:59:00Z</lastmod>
+  <loc>https://nzxhuong.github.io/galleries/rss.xml</loc>
+  <lastmod>2025-04-01T18:02:00Z</lastmod>
  </sitemap>
  <sitemap>
-  <loc>https://example.com/rss.xml</loc>
-  <lastmod>2025-04-01T17:45:00Z</lastmod>
+  <loc>https://nzxhuong.github.io/rss.xml</loc>
+  <lastmod>2025-04-01T18:02:00Z</lastmod>
  </sitemap>
  <sitemap>
-  <loc>https://example.com/sitemap.xml</loc>
-  <lastmod>2025-04-01T17:59:00Z</lastmod>
+  <loc>https://nzxhuong.github.io/sitemap.xml</loc>
+  <lastmod>2025-04-01T18:02:00Z</lastmod>
  </sitemap>
 </sitemapindex>

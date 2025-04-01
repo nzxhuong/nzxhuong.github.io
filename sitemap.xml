@@ -6,47 +6,47 @@
     xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
                         http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
  <url>
-  <loc>https://example.com/</loc>
+  <loc>https://nzxhuong.github.io/</loc>
   <lastmod>2025-04-01T17:40:00Z</lastmod>
  </url>
  <url>
-  <loc>https://example.com/2025/</loc>
+  <loc>https://nzxhuong.github.io/2025/</loc>
   <lastmod>2025-04-01T17:27:00Z</lastmod>
  </url>
  <url>
-  <loc>https://example.com/archive.html</loc>
-  <lastmod>2025-04-01T17:59:00Z</lastmod>
+  <loc>https://nzxhuong.github.io/archive.html</loc>
+  <lastmod>2025-04-01T18:02:00Z</lastmod>
  </url>
  <url>
-  <loc>https://example.com/categories/</loc>
+  <loc>https://nzxhuong.github.io/categories/</loc>
   <lastmod>2025-04-01T17:58:00Z</lastmod>
  </url>
  <url>
-  <loc>https://example.com/categories/entropy/</loc>
+  <loc>https://nzxhuong.github.io/categories/entropy/</loc>
   <lastmod>2025-04-01T17:29:00Z</lastmod>
  </url>
  <url>
-  <loc>https://example.com/categories/information-theory/</loc>
+  <loc>https://nzxhuong.github.io/categories/information-theory/</loc>
   <lastmod>2025-04-01T17:29:00Z</lastmod>
  </url>
  <url>
-  <loc>https://example.com/categories/mathjax/</loc>
+  <loc>https://nzxhuong.github.io/categories/mathjax/</loc>
   <lastmod>2025-04-01T17:29:00Z</lastmod>
  </url>
  <url>
-  <loc>https://example.com/categories/probability/</loc>
+  <loc>https://nzxhuong.github.io/categories/probability/</loc>
   <lastmod>2025-04-01T17:29:00Z</lastmod>
  </url>
  <url>
-  <loc>https://example.com/galleries/</loc>
+  <loc>https://nzxhuong.github.io/galleries/</loc>
   <lastmod>2025-03-31T17:21:00Z</lastmod>
  </url>
  <url>
-  <loc>https://example.com/listings/</loc>
+  <loc>https://nzxhuong.github.io/listings/</loc>
   <lastmod>2025-03-31T17:21:00Z</lastmod>
  </url>
  <url>
-  <loc>https://example.com/posts/understanding-shannon-information-and-entropy/</loc>
+  <loc>https://nzxhuong.github.io/posts/understanding-shannon-information-and-entropy/</loc>
   <lastmod>2025-04-01T17:27:00Z</lastmod>
  </url>
 </urlset>
