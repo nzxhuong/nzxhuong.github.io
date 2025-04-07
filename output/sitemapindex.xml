@@ -6,24 +6,40 @@
     xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
                         http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
  <sitemap>
+  <loc>https://nzxhuong.github.io/categories/cat_reinforcement-learning.xml</loc>
+  <lastmod>2025-04-07T17:34:00Z</lastmod>
+ </sitemap>
+ <sitemap>
+  <loc>https://nzxhuong.github.io/categories/deep-q-learning.xml</loc>
+  <lastmod>2025-04-07T17:34:00Z</lastmod>
+ </sitemap>
+ <sitemap>
   <loc>https://nzxhuong.github.io/categories/entropy.xml</loc>
   <lastmod>2025-04-01T18:02:00Z</lastmod>
  </sitemap>
  <sitemap>
+  <loc>https://nzxhuong.github.io/categories/experience-replay.xml</loc>
+  <lastmod>2025-04-07T17:34:00Z</lastmod>
+ </sitemap>
+ <sitemap>
   <loc>https://nzxhuong.github.io/categories/importance-sampling.xml</loc>
-  <lastmod>2025-04-02T13:33:00Z</lastmod>
+  <lastmod>2025-04-07T17:36:00Z</lastmod>
  </sitemap>
  <sitemap>
   <loc>https://nzxhuong.github.io/categories/information-theory.xml</loc>
   <lastmod>2025-04-01T18:02:00Z</lastmod>
  </sitemap>
  <sitemap>
+  <loc>https://nzxhuong.github.io/categories/learning-notes.xml</loc>
+  <lastmod>2025-04-07T17:34:00Z</lastmod>
+ </sitemap>
+ <sitemap>
   <loc>https://nzxhuong.github.io/categories/mathjax.xml</loc>
-  <lastmod>2025-04-02T13:33:00Z</lastmod>
+  <lastmod>2025-04-07T17:36:00Z</lastmod>
  </sitemap>
  <sitemap>
   <loc>https://nzxhuong.github.io/categories/prioritized-experience-replay.xml</loc>
-  <lastmod>2025-04-02T13:33:00Z</lastmod>
+  <lastmod>2025-04-07T17:36:00Z</lastmod>
  </sitemap>
  <sitemap>
   <loc>https://nzxhuong.github.io/categories/probability.xml</loc>
@@ -31,7 +47,7 @@
  </sitemap>
  <sitemap>
   <loc>https://nzxhuong.github.io/categories/reinforcement-learning.xml</loc>
-  <lastmod>2025-04-02T13:33:00Z</lastmod>
+  <lastmod>2025-04-07T17:36:00Z</lastmod>
  </sitemap>
  <sitemap>
   <loc>https://nzxhuong.github.io/galleries/rss.xml</loc>
@@ -39,10 +55,10 @@
  </sitemap>
  <sitemap>
   <loc>https://nzxhuong.github.io/rss.xml</loc>
-  <lastmod>2025-04-02T13:33:00Z</lastmod>
+  <lastmod>2025-04-07T17:36:00Z</lastmod>
  </sitemap>
  <sitemap>
   <loc>https://nzxhuong.github.io/sitemap.xml</loc>
-  <lastmod>2025-04-02T13:33:00Z</lastmod>
+  <lastmod>2025-04-07T17:36:00Z</lastmod>
  </sitemap>
 </sitemapindex>

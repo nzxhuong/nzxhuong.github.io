@@ -1,112 +1,107 @@
-<p>Before diving into importance sampling and prioritized experience, we should be on the same page. In Deep Reinforcement Learning, especially in algorithms like Deep Q-Networks (DQN), we often use an Experience Replay buffer. This buffer stores past transitions experienced by the agent, typically tuples of (State <span class="math">\(S\)</span>, Action <span class="math">\(A\)</span>, Reward <span class="math">\(R\)</span>, Next State <span class="math">\(S'\)</span>, Done flag <span class="math">\(d\)</span>). During training, we sample mini-batches of these transitions from the buffer to update the agent's policy or value function.</p>
-<p>The standard approach is to sample transitions <em>uniformly</em> at random from the replay buffer. If the buffer contains <span class="math">\(N\)</span> transitions, each transition has a probability of <span class="math">\(1/N\)</span> (or <span class="math">\(b/N\)</span> for a mini-batch of size <span class="math">\(b\)</span>) of being selected. While simple and effective in breaking correlations between consecutive experiences, uniform sampling treats all transitions as equally important. However, some transitions might be much more informative or surprising to the agent than others, potentially offering a greater learning opportunity. Uniform sampling means these crucial transitions might be sampled rarely, especially in large buffers, potentially slowing down learning. This post explores Prioritized Experience Replay (PER), a technique designed to address this by sampling important transitions more frequently, using the mathematical framework of Importance Sampling.</p>
+<p>During the time I’m learning about Deep Q-Learning (DQN), I was stumbling on one thought: with experience replay, we sample transitions in the buffer uniformly. But the way we append <em>every</em> transition means it's likely that most of the transitions are 'bad' experiences, especially early on. Like in the cliff walking problem, early in training we're just running around randomly and falling off the cliff a lot. This leads to the buffer being mostly filled with bad outcomes. Even when we <em>do</em> finally reach the goal and get a good transition, it's drowned out by the huge amount of bad stuff we already stored. This means most of the time we're sampling 'bad' experiences during training updates, and that doesn't feel very efficient.</p>
+<p>So I started thinking... is there a way to sample more of the 'good' stuff? That's when I found Prioritized Experience Replay (PER), proposed by DeepMind.</p>
 <!-- TEASER_END -->
-<p>As mentioned, the replay buffer stores transitions <span class="math">\((S_t, A_t, R_{t+1}, S_{t+1}, d_{t+1})\)</span>. Uniform sampling gives every stored experience an equal chance of being used for learning updates. Consider a scenario where the agent encounters a rare but highly informative event (e.g., receiving an unexpectedly large reward or penalty). Such transitions can significantly impact the agent's understanding of the environment. However, if the buffer holds thousands or millions of transitions, these critical experiences might only be sampled occasionally under a uniform strategy, hindering efficient learning. We want a way to focus the learning process on the transitions that offer the most potential for improvement.</p>
-<p>Importance Sampling is a technique that allows us to estimate the expectation of a function with respect to one probability distribution (<span class="math">\(p(x)\)</span>), while drawing samples from a <em>different</em> probability distribution (<span class="math">\(q(x)\)</span>).</p>
-<p>Suppose we want to compute the expected value of a function <span class="math">\(f(x)\)</span> where <span class="math">\(x\)</span> is drawn from distribution <span class="math">\(p(x)\)</span>:</p>
+<p><br/><h3> What Makes an Experience 'Good' (or 'Bad')? </h3></p>
+<p>But what <em>is</em> a 'good' or 'bad' experience? We need a metric to measure this. You could define this however you want, really, but we'll stick to the one proposed by DeepMind: the magnitude of the TD-error. (There are other cool ideas, like using entropy as proposed in &quot;Uncertainty Prioritized Experience Replay&quot; - sounds neat, maybe a future post topic!).</p>
+<p>The TD-error for standard DQN is:</p>
 <div class="math">
 \begin{equation*}
-E_{x \sim p}[f(x)] = \sum_x p(x)f(x) \quad \text{(for discrete x)}
+\delta_i = r_t + \gamma \max_{a'} Q_{\theta^-}(s_{t+1}, a') - Q_{\theta}(s_t, a_t)
+\tag{1}
 \end{equation*}
 </div>
-<p>If we have another distribution <span class="math">\(q(x)\)</span> defined over the same domain, such that <span class="math">\(q(x) &gt; 0\)</span> whenever <span class="math">\(p(x)f(x) \neq 0\)</span>, we can rewrite the expectation:</p>
-<div class="math">
-\begin{align*}
-E_{x \sim p}[f(x)] &amp;= \sum_x p(x)f(x) \\
-                  &amp;= \sum_x \frac{q(x)}{q(x)} p(x)f(x) \\
-                  &amp;= \sum_x q(x) \frac{p(x)}{q(x)} f(x) \\
-                  &amp;= E_{x \sim q}\left[ \frac{p(x)}{q(x)} f(x) \right]
-\end{align*}
-</div>
-<p>The term <span class="math">\(w(x) = \frac{p(x)}{q(x)}\)</span> is called the <strong>importance weight</strong>. It corrects for the bias introduced by sampling from <span class="math">\(q(x)\)</span> instead of <span class="math">\(p(x)\)</span>.</p>
-<p>We can estimate these expectations using samples from <span class="math">\(p\)</span> or <span class="math">\(q\)</span>:</p>
-<ul class="simple">
-<li><p>Sampling from <span class="math">\(p\)</span>: <span class="math">\(E_{x \sim p}[f(x)] \approx \frac{1}{n} \sum_{i=1}^n f(x_i)\)</span>, where <span class="math">\(x_i \sim p\)</span>.</p></li>
-<li><p>Sampling from <span class="math">\(q\)</span>: <span class="math">\(E_{x \sim p}[f(x)] \approx \frac{1}{n} \sum_{i=1}^n \frac{p(x_i)}{q(x_i)} f(x_i) = \frac{1}{n} \sum_{i=1}^n w(x_i) f(x_i)\)</span>, where <span class="math">\(x_i \sim q\)</span>.</p></li>
-</ul>
-<p>This gives us a tool to sample transitions non-uniformly (<span class="math">\(q\)</span>) while still correctly estimating the objective function defined under uniform sampling (<span class="math">\(p\)</span>). The next step is to define a suitable non-uniform distribution <span class="math">\(q\)</span> for our replay buffer.</p>
-<p>PER aims to sample transitions from the replay buffer based on their &quot;importance&quot; or &quot;priority&quot;. A common measure of importance is the magnitude of the <strong>Temporal Difference (TD) error</strong>, which reflects how &quot;surprising&quot; a transition is to the current value function estimate. For a transition <span class="math">\(i = (s, a, r, s')\)</span>, the TD error <span class="math">\(\delta_i\)</span> in DQN is:</p>
-<div class="math">
-\begin{equation*}
-\delta_i = r + \gamma \max_{a'} Q(s', a'; \theta^{-}) - Q(s, a; \theta)
-\end{equation*}
-</div>
-<p>where:</p>
-<ul class="simple">
-<li><p><span class="math">\(Q(s, a; \theta)\)</span> is the Q-value estimated by the main network with parameters <span class="math">\(\theta\)</span>.</p></li>
-<li><p><span class="math">\(Q(s', a'; \theta^{-})\)</span> is the Q-value estimated by the target network with parameters <span class="math">\(\theta^{-}\)</span>.</p></li>
-<li><p><span class="math">\(\gamma\)</span> is the discount factor.</p></li>
-<li><p>A large absolute TD error <span class="math">\(|\delta_i|\)</span> suggests that the Q-value prediction for <span class="math">\((s, a)\)</span> was inaccurate and the transition offers a significant learning opportunity.</p></li>
-</ul>
-<p>If you unfamiliar with all the terms above, i'm highly recommend you to watch the video of <a class="reference external" href="https://www.youtube.com/watch?v=UoPei5o4fps">Value Function Approximation</a> by David Silver, great video.</p>
-<p>Given the TD error <span class="math">\(|\delta_i|\)</span> for each transition <span class="math">\(i\)</span> in the buffer, we need to convert these errors into sampling probabilities <span class="math">\(q(i)\)</span>. Two common methods proposed by DeepMind are:</p>
-<ol class="arabic">
-<li><p><strong>Proportional Prioritization:</strong> The priority <span class="math">\(p_i\)</span> of transition <span class="math">\(i\)</span> is directly related to its TD error:</p>
+<p>(Unfamiliar with this equation? Check out David Silver's lecture on <a class="reference external" href="https://www.youtube.com/watch?v=UoPei5o4fps">Value Function Approximation</a> – it's great!)</p>
+<p>We then just take the absolute value (magnitude) of the TD-error to get the priority for a transition <cite>i</cite>. We add a small constant <cite>ϵ</cite> to ensure no transition has zero probability of being sampled:</p>
 <div class="math">
 \begin{equation*}
 p_i = |\delta_i| + \epsilon
+\tag{2}
 \end{equation*}
 </div>
-<p>where <span class="math">\(\epsilon\)</span> is a small positive constant to ensure that all transitions have a non-zero priority.</p>
-</li>
-<li><p><strong>Rank-Based Prioritization:</strong> Priorities are assigned based on the rank of the transition when sorted by <span class="math">\(|\delta_i|\)</span> in descending order:</p>
+<p>This method is called &quot;proportional&quot; prioritization. There's another way called &quot;rank-based&quot;, but we won't cover it here.</p>
+<p><h4> From Priority to Probability </h4></p>
+<p>Okay, now we have priorities <cite>p_i</cite> for each transition. We need a way to actually <em>sample</em> based on these priorities, meaning we need a probability distribution. A simple way to construct one is:</p>
 <div class="math">
 \begin{equation*}
-p_i = \frac{1}{\text{rank}(i)}
+P(i) = \frac{p_i^\alpha}{\sum_k p_k^\alpha}
+\tag{3}
 \end{equation*}
 </div>
-<p>where <span class="math">\(\text{rank}(i)\)</span> is the rank of transition <span class="math">\(i\)</span> (starting from 1 for the highest <span class="math">\(|\delta_i|\)</span>). This method is less sensitive to outliers in TD error magnitudes compared to the proportional method.</p>
-</li>
-</ol>
-<p>Once priorities <span class="math">\(p_i\)</span> are assigned to all <span class="math">\(N\)</span> transitions in the buffer, the probability <span class="math">\(q(i)\)</span> of sampling transition <span class="math">\(i\)</span> is calculated by normalizing the priorities:</p>
+<p>Here, <cite>0 &lt;= α &lt;= 1</cite> is a hyperparameter that controls how much prioritization we use. If <cite>α = 0</cite>, we get back to uniform sampling. If <cite>α = 1</cite>, we sample purely based on the priorities <cite>p_i</cite>. Using a value between 0 and 1 helps smooth things out, ensuring that transitions with very high priority don't completely dominate the sampling process.</p>
+<p><br/><h3> Oops, We Introduced Bias! Enter Importance Sampling </h3></p>
+<p>Now we're sampling the 'good' (high TD-error) transitions more often. Awesome! But... this introduces bias. Because we're <em>not</em> sampling uniformly anymore, the updates we make might skew towards these high-error transitions, potentially leading the network to not generalize well across all possible scenarios it might encounter. We've changed the distribution we're drawing samples from!</p>
+<p>Luckily, there's a standard technique to correct for this kind of bias: Importance Sampling (IS).</p>
+<p>Importance Sampling is a technique that lets us estimate the expected value of a function <cite>f(x)</cite> under one probability distribution <cite>p(x)</cite>, even when we're drawing samples <cite>x</cite> from a <em>different</em> probability distribution <cite>q(x)</cite>.</p>
+<p>Suppose we want to compute <cite>E_p[f(x)]</cite> (the expected value of <cite>f(x)</cite> where <cite>x</cite> is drawn from <cite>p(x)</cite>), assuming discrete <cite>x</cite> for simplicity:</p>
 <div class="math">
 \begin{equation*}
-q(i) = \frac{p_i}{\sum_{j=1}^N p_j}
+E_p[f(x)] = \sum_x p(x) f(x)
 \end{equation*}
 </div>
-<p>Sampling is typically done using these probabilities, often implemented efficiently using data structures like SumTrees.</p>
-<p>Now we put everything together. The standard DQN objective minimizes the expected squared TD error, assuming uniform sampling (<span class="math">\(p(i) = 1/N\)</span>):</p>
+<p>Here's the trick: we multiply and divide by <cite>q(x)</cite> inside the sum:</p>
 <div class="math">
-\begin{equation*}
-L(\theta) = E_{(s,a,r,s') \sim U(D)} [ \delta_i^2 ] = E_{i \sim p} [ \delta_i^2 ]
-\end{equation*}
+\begin{align*}
+E_p[f(x)] &amp;= \sum_x p(x) f(x) \\
+          &amp;= \sum_x \frac{q(x)}{q(x)} p(x) f(x) \\
+          &amp;= \sum_x q(x) \frac{p(x)}{q(x)} f(x) \\
+          &amp;= E_q\left[ \frac{p(x)}{q(x)} f(x) \right]
+\tag{4}
+\end{align*}
 </div>
-<p>When sampling with non-uniform probabilities <span class="math">\(q(i)\)</span> from PER, we must use importance sampling weights to correct the bias. The loss function becomes:</p>
-<div class="math">
-\begin{equation*}
-L(\theta) = E_{i \sim q} [ w_i \delta_i^2 ]
-\end{equation*}
-</div>
-<p>The importance weight <span class="math">\(w_i\)</span> for transition <span class="math">\(i\)</span> is:</p>
-<div class="math">
-\begin{equation*}
-w_i = \frac{p(i)}{q(i)} = \frac{1/N}{q(i)} = \frac{1}{N \cdot q(i)}
-\end{equation*}
-</div>
-<p>The gradient update for the DQN parameters <span class="math">\(\theta\)</span> using a mini-batch of size <span class="math">\(b\)</span> sampled according to <span class="math">\(q(i)\)</span> is then:</p>
-<div class="math">
-\begin{equation*}
-\Delta \theta = \frac{1}{b} \sum_{i \in \text{batch}} w_i \delta_i \nabla_\theta Q(s_i, a_i; \theta)
-\end{equation*}
-</div>
-<p>We then update the parameters of the model using the gradient above with some optimizer (e.g., Adam, RMSProp). But there are a few things to note:
-Some time the magnitude of TD-error can be very large, which can lead to large importance weights. This can cause instability in training. To mitigate this, we can use a parameter <span class="math">\(\alpha\)</span> to scale the importance weights where <span class="math">\(\alpha \in [0, 1]\)</span>:</p>
-<div class="math">
-\begin{equation*}
-p_i = |\delta_i|^\alpha + \epsilon
-\end{equation*}
-</div>
-<p>For the importance weights, we can do the same trick with a parameter <span class="math">\(\beta\)</span> to scale the importance weights where <span class="math">\(\beta \in [0, 1]\)</span>:</p>
-<div class="math">
-\begin{equation*}
-w_i = \left( \frac{p(i)}{q(i)} \right)^\beta
-\end{equation*}
-</div>
-<p>Prioritized Experience Replay provides a mechanism to focus learning on the most informative transitions by sampling them more frequently than uniform random sampling would dictate. By combining this prioritized sampling strategy with Importance Sampling weights, PER can significantly accelerate learning and improve the performance of Deep Reinforcement Learning agents like DQN, demonstrating the power of moving beyond simple uniform sampling in experience replay.</p>
-<p>In the future, there might be a post on how to implement PER in PyTorch.</p>
-<p><br/><h3> Further Reading </h3></p>
+<p>Look at that! With a simple manipulation, we can now estimate the expectation using samples drawn from <cite>q(x)</cite> instead of <cite>p(x)</cite>. The term <cite>w = p(x) / q(x)</cite> is called the importance weight. It tells us how to adjust the contribution of each sample <cite>x ~ q(x)</cite> to correct for the fact that we didn't sample it from <cite>p(x)</cite>.</p>
+<p><h4> Putting IS into DQN </h4></p>
+<p>How do we actually <em>use</em> this weight <cite>w_i</cite> in DQN? And what <em>are</em> <cite>p(x)</cite> and <cite>q(x)</cite> in our case?</p>
 <ul class="simple">
-<li><p>Original PER Paper: Schaul, T., Quan, J., Antonoglou, I., &amp; Silver, D. (2015). Prioritized Experience Replay. <a class="reference external" href="https://arxiv.org/abs/1511.05952">arXiv:1511.05952</a>.</p></li>
-<li><p>Wikipedia: <a class="reference external" href="https://en.wikipedia.org/wiki/Importance_sampling">Importance Sampling</a></p></li>
+<li><p><cite>q(x)</cite> is the prioritized distribution we sample from, <cite>P(i)</cite> from Equation 3.</p></li>
+<li><p><cite>p(x)</cite> is the distribution we <em>should</em> have been sampling from for an unbiased estimate, which is the uniform distribution over the replay buffer. If the buffer has size <cite>N</cite>, then <cite>p(i) = 1/N</cite> for all <cite>i</cite>.</p></li>
 </ul>
-<p><br /></p>
+<p>So, the importance weight for transition <cite>i</cite> is:</p>
+<div class="math">
+\begin{equation*}
+w_i = \frac{p(i)}{q(i)} = \frac{1/N}{P(i)} = \frac{1}{N \cdot P(i)}
+\tag{5}
+\end{equation*}
+</div>
+<p>To give us more control, especially during training, another hyperparameter <cite>β</cite> (usually annealed from an initial value <cite>β_0</cite> up to 1 over training) is introduced:</p>
+<div class="math">
+\begin{equation*}
+w_i = \left( \frac{1}{N \cdot P(i)} \right)^\beta
+\tag{6}
+\end{equation*}
+</div>
+<p>This <cite>β</cite> controls how much correction we apply. When <cite>β = 1</cite>, we fully correct for the bias. When <cite>β = 0</cite>, we don't correct at all. Annealing <cite>β</cite> towards 1 helps stabilize training early on when estimates might be noisy.</p>
+<p>Recall the objective (loss function) of DQN is basically minimizing the expected squared TD-error:</p>
+<div class="math">
+\begin{equation*}
+L(\theta) = E\left[ \delta_i^2 \right] = E\left[ (r_t + \gamma \max_{a'} Q_{\theta^-}(s_{t+1}, a') - Q_{\theta}(s_t, a_t))^2 \right]
+\tag{7}
+\end{equation*}
+</div>
+<p>Normally, we'd approximate this expectation using a mini-batch of size <cite>b</cite> sampled <em>uniformly</em> and perform gradient descent:</p>
+<div class="math">
+\begin{equation*}
+\theta \leftarrow \theta - \eta \nabla_\theta L(\theta)
+\end{equation*}
+</div>
+<p>With PER, we sample according to <cite>P(i)</cite> and use importance sampling weights. The loss for a mini-batch becomes a <em>weighted</em> average:</p>
+<div class="math">
+\begin{equation*}
+L(\theta) \approx \frac{1}{b} \sum_{i=1}^b w_i \cdot \delta_i^2
+\tag{8}
+\end{equation*}
+</div>
+<p>So, when we calculate the gradient of this loss with respect to the network parameters <cite>θ</cite>, the weight <cite>w_i</cite> just comes along for the ride (treating <cite>w_i</cite> as a constant for this specific gradient step):</p>
+<div class="math">
+\begin{align*}
+\nabla_\theta L(\theta) &amp;\approx \nabla_\theta \left( \frac{1}{b} \sum_{i=1}^b w_i \cdot \delta_i^2 \right) \\
+           &amp;= \frac{1}{b} \sum_{i=1}^b w_i \cdot \nabla_\theta (\delta_i^2) \\
+           &amp;= \frac{1}{b} \sum_{i=1}^b w_i \cdot 2 \delta_i \cdot \nabla_\theta (\delta_i) \\
+           &amp;= \frac{1}{b} \sum_{i=1}^b w_i \cdot 2 \delta_i \cdot \nabla_\theta (r_t + \gamma \max_{a'} Q_{\theta^-}(s_{t+1}, a') - Q_{\theta}(s_t, a_t)) \\
+           &amp;= \frac{1}{b} \sum_{i=1}^b w_i \cdot 2 \delta_i \cdot (- \nabla_\theta Q_{\theta}(s_t, a_t)) \\
+           &amp;= -\frac{2}{b} \sum_{i=1}^b w_i \delta_i \nabla_\theta Q_{\theta}(s_t, a_t)
+\tag{9}
+\end{align*}
+</div>
+<p>Comparing this to the gradient for standard DQN (which is the same formula without the <cite>w_i</cite>), we see the only difference is that we multiply the gradient contribution of <em>each transition</em> <cite>i</cite> in the mini-batch by its corresponding importance sampling weight <cite>w_i</cite>! Pretty straightforward, right?</p>
+<p><br />
+I'll stop here for now. This post just focuses on the math and the core idea behind PER. The implementation details (like how to efficiently sample based on priorities and update them) will be the story for a future post.</p>
