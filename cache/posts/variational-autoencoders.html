@@ -1,0 +1,205 @@
+<p>This is my learning note from <a class="reference external" href="https://www.youtube.com/watch?v=FMuvUZXMzKM">L4 Latent Variable Models</a> by Pieter Abbeel. The idea of being able to generate (potentially new) images, songs, or any data type you want with generative models always amazes me. And I just want to share my thoughts on it (mostly Latent Variable Models, LVMs).</p>
+<!-- TEASER_END -->
+<p>Imagine this: we have a bunch of clock pictures. Each with a different background, different time, different number font, etc. And I want to create a model that can generate a picture that seems 'real', like it's part of those original clock pictures. But here is the catch: we need to have a 'seeable' image, so its size should be at least 224x224 grayscale, which is already a huge number of pixels (dimensions). But we might want the model to scale to even Full HD (1920x1080)! Creating a model that learns the distribution <span class="math">\(p(x)\)</span> over <em>all</em> these pixels directly is not effective, maybe even intractable, because we don't know the true form of <span class="math">\(p(x)\)</span>.</p>
+<p>Let’s think about the image in another way. What features does the clock image show? Background, time, number font... How about we just learn those underlying factors, and then recreate the image based on this information? This is the motivation behind Latent Variable Models. We want to learn some low-dimensional latent variables <span class="math">\(z\)</span> (our hidden factors). The idea is that we can then easily sample <span class="math">\(z \sim p(z)\)</span> (where <span class="math">\(z\)</span> is a vector) and use this sampled <span class="math">\(z\)</span> to sample our data <span class="math">\(x \sim p_{\theta}(x|z)\)</span>. Nice.</p>
+<p><br/><h3> How Do We Train This Thing? The Log-Likelihood Approach </h3></p>
+<p>As with many other generative models, we'll use maximum log-likelihood as the objective to maximize over the model parameters <span class="math">\(\theta\)</span>. We want to maximize the probability of seeing our training data <span class="math">\(X = \{x^{(1)}, ..., x^{(N)}\}\)</span>:</p>
+<div class="math">
+\begin{equation*}
+\max_{\theta} \sum_{i=1}^N \log p_{\theta}(x^{(i)})
+\tag{1}
+\end{equation*}
+</div>
+<p>The probability of a single data point <span class="math">\(x\)</span> involves marginalizing out the latent variable <span class="math">\(z\)</span>:</p>
+<div class="math">
+\begin{equation*}
+p_{\theta}(x) = \int p_{\theta}(x, z) dz = \int p_{\theta}(x|z) p(z) dz
+\tag{2}
+\end{equation*}
+</div>
+<p>This integral leads to two scenarios for computing the log-likelihood:</p>
+<ol class="arabic">
+<li><p><strong>Small `z` range:</strong> If <span class="math">\(z\)</span> can only take a few discrete values, we can compute the exact likelihood by summing over all possible <span class="math">\(z\)</span>. The calculation involves computing <span class="math">\(\sum_z p_{\theta}(x|z) p(z)\)</span>:</p>
+<div class="math">
+\begin{equation*}
+\log p_{\theta}(x) = \log \sum_z p_{\theta}(x|z) p(z)
+\tag{3}
+\end{equation*}
+</div>
+<p>But this is only possible if we know exactly what <span class="math">\(z\)</span> represents <em>and</em> its range is small. For example, with the clock, maybe we manually define <span class="math">\(z_1=1\)</span> if it's a wall clock, <span class="math">\(z_2=1\)</span> if it's broken, etc. (assuming <span class="math">\(z\)</span> components are binary).</p>
+</li>
+<li><p><strong>Large or Continuous `z` range:</strong> In reality, we often need many latent dimensions (<span class="math">\(z\)</span> might be a 200-dimensional continuous vector!) to capture the richness of the data. Now, the sum (or integral) involving <span class="math">\(p_{\theta}(x|z) p(z)\)</span> becomes intractable to compute directly.</p></li>
+</ol>
+<p><h4> The Problem with Naive Monte Carlo Estimation </h4></p>
+<p>When the sum/integral is intractable, we can try to estimate it using Monte Carlo sampling. We sample <span class="math">\(M\)</span> values <span class="math">\(z^{(m)}\)</span> from the prior <span class="math">\(p(z)\)</span> and approximate the likelihood:</p>
+<div class="math">
+\begin{equation*}
+p_{\theta}(x) = E_{z \sim p(z)}[p_{\theta}(x|z)] \approx \frac{1}{M} \sum_{m=1}^M p_{\theta}(x|z^{(m)})
+\tag{4}
+\end{equation*}
+</div>
+<p>So the objective becomes:</p>
+<div class="math">
+\begin{equation*}
+\max_{\theta} \sum_{i=1}^N \log \left( \frac{1}{M} \sum_{m=1}^M p_{\theta}(x^{(i)}|z^{(m)}) \right) \quad \text{where } z^{(m)} \sim p(z)
+\tag{5}
+\end{equation*}
+</div>
+<p>If you found that a little bit hard to follow, just remember the expectation formula: <span class="math">\(E_{z \sim p(z)}[f(z)] = \int f(z)p(z) dz \approx \frac{1}{M}\sum f(z^{(m)})\)</span> for <span class="math">\(z^{(m)} \sim p(z)\)</span>. Here, <span class="math">\(f(z) = p_{\theta}(x|z)\)</span>.</p>
+<p>This looks convenient at first sight, but in fact, sampling <span class="math">\(z\)</span> from the <em>prior</em> <span class="math">\(p(z)\)</span> will mostly result in <span class="math">\(p_{\theta}(x|z)\)</span> being very close to zero for a <em>specific</em> <span class="math">\(x\)</span>! This makes the gradient of the log-likelihood with respect to <span class="math">\(\theta\)</span> also close to zero, leading to very slow or no learning.</p>
+<p>For a more concrete example, let's revisit the MNIST digits (0-9). Imagine our data <span class="math">\(x\)</span> is an image of a '7'. Our latent <span class="math">\(z\)</span> ideally encodes &quot;this is a 7&quot;. If we just sample <span class="math">\(z\)</span> randomly from its prior distribution <span class="math">\(p(z)\)</span> (say, a standard Gaussian), what's the chance that the sampled <span class="math">\(z\)</span> actually corresponds to a '7'? Probably very low. Most random <span class="math">\(z\)</span> values will generate images that look nothing like our specific '7', meaning <span class="math">\(p_{\theta}(x=\text{'7'}|z_{\text{random}})\)</span> will be tiny. The <span class="math">\(z\)</span> values that <em>do</em> generate a '7' live in a very small region of the latent space.</p>
+<p>You might say, &quot;So what? Just sample more <span class="math">\(z\)</span> values!&quot; But remember:
+1.  The latent space <span class="math">\(z\)</span> can be high-dimensional (e.g., 200 dimensions). If each dimension needs to be 'just right' to reconstruct <span class="math">\(x\)</span>, the probability of randomly sampling a 'good' <span class="math">\(z\)</span> becomes vanishingly small. If <span class="math">\(z\)</span> was 200 binary dimensions and each needed to match perfectly with probability 0.5, the chance is <span class="math">\(0.5^{200}\)</span>, which is practically zero.
+2.  We're working with samples to estimate the likelihood. If the chance of sampling a 'good' <span class="math">\(z\)</span> (one that gives non-negligible <span class="math">\(p_{\theta}(x|z)\)</span>) is nearly impossible, our likelihood estimate (and its gradient) will be terrible. Ineffective learning is a big no-no in deep learning.</p>
+<p><br/><h3> A Better Way: Focusing the Sampling </h3></p>
+<p>Now what can we do? The problem is that we're sampling <span class="math">\(z\)</span> blindly from the prior <span class="math">\(p(z)\)</span>. What we <em>really</em> want are <span class="math">\(z\)</span> values that are likely to have generated our specific <span class="math">\(x\)</span>.</p>
+<p><h4> Idea 1: Importance Sampling (Briefly) </h4></p>
+<p>We could introduce a <em>proposal</em> distribution <span class="math">\(q(z)\)</span> that is designed to give us <span class="math">\(z\)</span> values relevant to <span class="math">\(x\)</span>. Then we use importance sampling (for more details, you can refer to my older blog post on PER, though the application is slightly different here). The objective would look like:</p>
+<div class="math">
+\begin{align*}
+\log p_{\theta}(x) &amp;= \log \int p_{\theta}(x|z) p(z) dz \\
+                 &amp;= \log \int p_{\theta}(x|z) p(z) \frac{q(z)}{q(z)} dz \\
+                 &amp;= \log E_{z \sim q(z)} \left[ \frac{p(z)}{q(z)} p_{\theta}(x|z) \right] \\
+                 &amp;\approx \log \left( \frac{1}{M} \sum_{m=1}^M \frac{p(z^{(m)})}{q(z^{(m)})} p_{\theta}(x|z^{(m)}) \right) \quad \text{where } z^{(m)} \sim q(z)
+\tag{6}
+\end{align*}
+</div>
+<p>So now we ask: which <span class="math">\(q(z)\)</span> should we choose?</p>
+<p><h4> Idea 2: Variational Inference and the ELBO </h4></p>
+<p>The intuitive answer is: we want <span class="math">\(q(z)\)</span> to be close to the true <em>posterior</em> distribution <span class="math">\(p_{\theta}(z|x) = p_{\theta}(x|z)p(z) / p_{\theta}(x)\)</span>. The posterior tells us exactly which <span class="math">\(z\)</span> values are likely given <span class="math">\(x\)</span>.</p>
+<p>The problem? We can't easily compute or sample from <span class="math">\(p_{\theta}(z|x)\)</span> because it depends on <span class="math">\(p_{\theta}(x)\)</span> in the denominator, which is the very intractable quantity we started with!</p>
+<p>So, instead of finding the <em>exact</em> posterior, we <em>approximate</em> it using a simpler, tractable distribution <span class="math">\(q(z)\)</span>, typically a Gaussian: <span class="math">\(q(z) \approx p_{\theta}(z|x)\)</span>. We want to make <span class="math">\(q(z)\)</span> as close as possible to the true posterior, usually by minimizing the Kullback-Leibler (KL) divergence between them: <span class="math">\(KL(q(z) || p_{\theta}(z|x))\)</span>.</p>
+<p>If we did this by finding a separate <span class="math">\(q(z)\)</span> for <em>each</em> data point <span class="math">\(x^{(i)}\)</span>, it would be computationally expensive. So, people introduced <strong>Amortized Inference</strong>: we use a single neural network, often called the <strong>encoder</strong> or <strong>inference network</strong>, parameterized by <span class="math">\(\phi\)</span>, to predict the parameters of <span class="math">\(q\)</span> for <em>any</em> given <span class="math">\(x\)</span>. We denote this distribution as <span class="math">\(q_{\phi}(z|x)\)</span>. Now our goal is to minimize the KL divergence <em>on average</em> over our data:</p>
+<div class="math">
+\begin{equation*}
+\min_{\phi, \theta} \sum_{i=1}^N KL(q_{\phi}(z|x^{(i)}) || p_{\theta}(z|x^{(i)}))
+\tag{7}
+\end{equation*}
+</div>
+<p>(If you find it confusing due to the different <span class="math">\(q\)</span>'s: <span class="math">\(q(z)\)</span> was the general idea, <span class="math">\(q_{\phi}(z|x)\)</span> is the practical neural network implementation that approximates the true posterior <span class="math">\(p_{\theta}(z|x)\)</span>, which we can't compute directly).</p>
+<p>Using a single <span class="math">\(q_{\phi}(z|x)\)</span> network is faster, but it comes with a catch: it's an approximation. We're making two approximations:
+1.  The family of distributions for <span class="math">\(q\)</span> (e.g., Gaussian) might not match the true posterior's shape.
+2.  We're using the <em>same</em> parameters <span class="math">\(\phi\)</span> (in the network) to generate <span class="math">\(q\)</span> for all <span class="math">\(x\)</span>, which might limit flexibility compared to finding an optimal <span class="math">\(q\)</span> for each <span class="math">\(x\)</span> individually.</p>
+<p>Now, let's expand the KL divergence (dropping the sum over <span class="math">\(i\)</span> and <span class="math">\((i)\)</span> superscripts for now, just considering one <span class="math">\(x\)</span>):</p>
+<div class="math">
+\begin{align*}
+KL(q_{\phi}(z|x) || p_{\theta}(z|x)) &amp;= E_{z \sim q_{\phi}(z|x)} \left[ \log \frac{q_{\phi}(z|x)}{p_{\theta}(z|x)} \right] \\
+&amp;= E_{z \sim q_{\phi}} \left[ \log q_{\phi}(z|x) - \log p_{\theta}(z|x) \right] \\
+&amp;= E_{z \sim q_{\phi}} \left[ \log q_{\phi}(z|x) - \log \frac{p_{\theta}(x|z)p(z)}{p_{\theta}(x)} \right] \\
+&amp;= E_{z \sim q_{\phi}} \left[ \log q_{\phi}(z|x) - \log p_{\theta}(x|z) - \log p(z) + \log p_{\theta}(x) \right] \\
+&amp;= E_{z \sim q_{\phi}} \left[ \log q_{\phi}(z|x) - \log p_{\theta}(x|z) - \log p(z) \right] + \log p_{\theta}(x)
+\tag{8}
+\end{align*}
+</div>
+<p>We pulled <span class="math">\(\log p_{\theta}(x)\)</span> out of the expectation because it doesn't depend on <span class="math">\(z\)</span>. Now rearrange this equation to isolate the intractable log-likelihood <span class="math">\(\log p_{\theta}(x)\)</span>:</p>
+<div class="math">
+\begin{equation*}
+\log p_{\theta}(x) = E_{z \sim q_{\phi}} \left[ \log p_{\theta}(x|z) \right] - E_{z \sim q_{\phi}} \left[ \log q_{\phi}(z|x) - \log p(z) \right] + KL(q_{\phi}(z|x) || p_{\theta}(z|x))
+\tag{9}
+\end{equation*}
+</div>
+<p>Recognize the second expectation term as another KL divergence:</p>
+<div class="math">
+\begin{equation*}
+E_{z \sim q_{\phi}} \left[ \log \frac{q_{\phi}(z|x)}{p(z)} \right] = KL(q_{\phi}(z|x) || p(z))
+\tag{10}
+\end{equation*}
+</div>
+<p>So we have:</p>
+<div class="math">
+\begin{equation*}
+\log p_{\theta}(x) = \underbrace{E_{z \sim q_{\phi}} \left[ \log p_{\theta}(x|z) \right] - KL(q_{\phi}(z|x) || p(z))}_{\text{ELBO}(x; \theta, \phi)} + KL(q_{\phi}(z|x) || p_{\theta}(z|x))
+\tag{11}
+\end{equation*}
+</div>
+<p>Since KL divergence is always non-negative (<span class="math">\(KL(...) \ge 0\)</span>), we have:</p>
+<div class="math">
+\begin{equation*}
+\log p_{\theta}(x) \ge E_{z \sim q_{\phi}} \left[ \log p_{\theta}(x|z) \right] - KL(q_{\phi}(z|x) || p(z))
+\tag{12}
+\end{equation*}
+</div>
+<p>The right-hand side is called the <strong>Evidence Lower Bound (ELBO)</strong>. Maximizing the ELBO with respect to both <span class="math">\(\theta\)</span> (decoder parameters) and <span class="math">\(\phi\)</span> (encoder parameters) serves two purposes:
+1.  It pushes up the lower bound on the true log-likelihood <span class="math">\(\log p_{\theta}(x)\)</span>, which is what we originally wanted to maximize.
+2.  It implicitly minimizes the <span class="math">\(KL(q_{\phi}(z|x) || p_{\theta}(z|x))\)</span> term, making our approximation <span class="math">\(q_{\phi}\)</span> closer to the true posterior.</p>
+<p>This ELBO is the standard objective function used for Variational Autoencoders (VAEs). The derivation might seem long, but understanding it helps see <em>why</em> this objective makes sense.</p>
+<p><h4> Why &quot;Autoencoder&quot;? </h4></p>
+<p>You might wonder why this is called an &quot;Autoencoder&quot;. It's because of the structure of the <span class="math">\(ELBO\)</span> objective:</p>
+<ul class="simple">
+<li><p><span class="math">\(E_{z \sim q_{\phi}} \left[ \log p_{\theta}(x|z) \right]\)</span>: This term encourages the <strong>decoder</strong> <span class="math">\(p_{\theta}(x|z)\)</span> to reconstruct the original input <span class="math">\(x\)</span> from the latent code <span class="math">\(z\)</span> produced by the <strong>encoder</strong> <span class="math">\(q_{\phi}(z|x)\)</span>. This is often called the <strong>reconstruction loss</strong>. (For continuous data like images with Gaussian likelihood, this term often simplifies to a squared error <span class="math">\(||x - \mu_{\text{decoder}}(z)||^2\)</span>, ignoring constants).</p></li>
+<li><p><span class="math">\(- KL(q_{\phi}(z|x) || p(z))\)</span>: This term acts as a <strong>regularizer</strong>. It encourages the distribution produced by the encoder (<span class="math">\(q_{\phi}(z|x)\)</span>) to stay close to the prior <span class="math">\(p(z)\)</span> (usually a standard Gaussian <span class="math">\(\mathcal{N}(0, I)\)</span>). This prevents the encoder from just assigning a unique delta-function-like <span class="math">\(z\)</span> to each <span class="math">\(x\)</span>, forcing the latent space to be somewhat smooth and structured.</p></li>
+</ul>
+<p><br/><h3> One More Trick: Reparameterization </h3></p>
+<p>We want to maximize the <span class="math">\(ELBO\)</span> using gradient ascent (or minimize the negative <span class="math">\(ELBO\)</span> with gradient descent). Let's look at the objective again:</p>
+<div class="math">
+\begin{equation*}
+ELBO = E_{z \sim q_{\phi}(z|x)} \left[ \log p_{\theta}(x|z) \right] - KL(q_{\phi}(z|x) || p(z))
+\tag{13}
+\end{equation*}
+</div>
+<p>We need to compute gradients with respect to <span class="math">\(\phi\)</span> (encoder) and <span class="math">\(\theta\)</span> (decoder). The gradient for <span class="math">\(\theta\)</span> is straightforward: <span class="math">\(\nabla_\theta E_{z \sim q_{\phi}}[\log p_{\theta}(x|z)] = E_{z \sim q_{\phi}}[\nabla_\theta \log p_{\theta}(x|z)]\)</span>, which can be approximated by sampling <span class="math">\(z\)</span> from <span class="math">\(q_{\phi}\)</span>.</p>
+<p>But the gradient for <span class="math">\(\phi\)</span> is tricky! The expectation <span class="math">\(E_{z \sim q_{\phi}}[...]\)</span> depends on <span class="math">\(\phi\)</span> <em>through the distribution we sample from</em>. Taking the gradient <span class="math">\(\nabla_\phi E_{z \sim q_{\phi}}[f(z)]\)</span> is hard because the sampling operation <span class="math">\(z \sim q_{\phi}\)</span> is generally not differentiable.</p>
+<p>No worries though, the <strong>reparameterization trick</strong> comes to save us! If <span class="math">\(q_{\phi}(z|x)\)</span> is a distribution that can be reparameterized (like a Gaussian), we can rewrite the sampling process. For a Gaussian <span class="math">\(q_{\phi}(z|x) = \mathcal{N}(z; \mu_{\phi}(x), \Sigma_{\phi}(x))\)</span>, instead of sampling <span class="math">\(z\)</span> directly, we can:
+1. Sample a noise variable <span class="math">\(\epsilon\)</span> from a simple, fixed distribution, like <span class="math">\(\epsilon \sim \mathcal{N}(0, I)\)</span>.
+2. Transform this noise using the parameters predicted by the encoder: <span class="math">\(z = \mu_{\phi}(x) + L_{\phi}(x) \epsilon\)</span>, where <span class="math">\(L_{\phi}(x)\)</span> is a matrix such that <span class="math">\(L L^T = \Sigma\)</span> (e.g., <span class="math">\(L = \text{diag}(\sigma_{\phi}(x))\)</span> if <span class="math">\(\Sigma\)</span> is diagonal).</p>
+<p>Now the expectation becomes:</p>
+<div class="math">
+\begin{equation*}
+E_{z \sim q_{\phi}(z|x)} [f(z)] = E_{\epsilon \sim \mathcal{N}(0,I)} [f(\mu_{\phi}(x) + L_{\phi}(x) \epsilon)]
+\tag{14}
+\end{equation*}
+</div>
+<p>The stochasticity is now outside the function, and we can backpropagate gradients through the deterministic transformation <span class="math">\(\mu_{\phi}(x) + L_{\phi}(x) \epsilon\)</span> with respect to <span class="math">\(\phi\)</span>!</p>
+<p>The overall flow becomes:
+Input <span class="math">\(x\)</span> -&gt; Encoder <span class="math">\(q_{\phi}(z|x)\)</span> -&gt; Predict params <span class="math">\(\mu, \sigma\)</span> (or <span class="math">\(L\)</span>) -&gt; Sample <span class="math">\(\epsilon \sim \mathcal{N}(0,I)\)</span> -&gt; Compute <span class="math">\(z = \mu + \sigma\epsilon\)</span> -&gt; Decoder <span class="math">\(p_{\theta}(x|z)\)</span> -&gt; Predict reconstruction params (e.g., <span class="math">\(\mu_{x|z}\)</span>) -&gt; Compute Loss (Reconstruction + KL).</p>
+<p><br/><h3> Implementation Example: MNIST VAE </h3></p>
+<p>Let's build a VAE trained on MNIST.
+*   <strong>Encoder</strong> <span class="math">\(q_{\phi}(z|x)\)</span>: We'll choose a multivariate Gaussian with a diagonal covariance matrix. The encoder network takes <span class="math">\(x\)</span> and outputs the mean vector <span class="math">\(\mu\)</span> and the log of the diagonal variances <span class="math">\(\log(\sigma^2)\)</span>.</p>
+<blockquote>
+<ul class="simple">
+<li><p>Why <span class="math">\(\log(\sigma^2)\)</span>? We need the variance <span class="math">\(\sigma^2\)</span> to be positive. By predicting <span class="math">\(\log(\sigma^2)\)</span>, we can exponentiate it (<span class="math">\(\exp(\log(\sigma^2)) = \sigma^2\)</span>) to get a positive value, even if the network outputs a negative number. This is numerically more stable than predicting <span class="math">\(\sigma\)</span> directly and squaring it.</p></li>
+</ul>
+</blockquote>
+<ul>
+<li><p><strong>Prior</strong> <span class="math">\(p(z)\)</span>: Standard Gaussian <span class="math">\(\mathcal{N}(0, I)\)</span>.</p></li>
+<li><p><strong>Decoder</strong> <span class="math">\(p_{\theta}(x|z)\)</span>: Since MNIST pixels are often treated as binary (0 or 1), we can use a Bernoulli distribution for each output pixel <span class="math">\(k\)</span>. The decoder network takes <span class="math">\(z\)</span> and outputs a vector <span class="math">\(p\)</span> of probabilities, where <span class="math">\(p_k\)</span> is the probability that pixel <span class="math">\(k\)</span> is 1.</p>
+<div class="math">
+\begin{equation*}
+p_{\theta}(x|z) = \prod_k p_k^{x_k} (1 - p_k)^{1 - x_k}
+\tag{15}
+\end{equation*}
+</div>
+<p>The reconstruction term in the <span class="math">\(ELBO\)</span> is <span class="math">\(E_{z \sim q_{\phi}}[\log p_{\theta}(x|z)]\)</span>. The log-likelihood for a single <span class="math">\(x\)</span> and <span class="math">\(z\)</span> is:</p>
+<div class="math">
+\begin{equation*}
+\log p_{\theta}(x|z) = \sum_k \left[ x_k \log p_k + (1 - x_k) \log(1 - p_k) \right]
+\tag{16}
+\end{equation*}
+</div>
+<p>This is exactly the negative of the <strong>Binary Cross-Entropy (BCE)</strong> loss between the input <span class="math">\(x\)</span> and the reconstructed probabilities <span class="math">\(p\)</span>. So, maximizing this term is equivalent to minimizing the <span class="math">\(BCE\)</span> loss.</p>
+</li>
+<li><p><strong>KL Term</strong>: The KL divergence between the encoder's output <span class="math">\(q_{\phi}(z|x) = \mathcal{N}(z; \mu, \text{diag}(\sigma^2))\)</span> and the prior <span class="math">\(p(z) = \mathcal{N}(z; 0, I)\)</span> has a convenient analytical form <a class="footnote-reference brackets" href="#id2" id="id1">1</a>:</p>
+<div class="math">
+\begin{equation*}
+KL(q_{\phi}(z|x) || p(z)) = \frac{1}{2} \sum_{j=1}^{\dim(z)} \left( \sigma_j^2 + \mu_j^2 - \log(\sigma_j^2) - 1 \right)
+\tag{17}
+\end{equation*}
+</div>
+</li>
+<li><p><strong>Total Loss</strong> (to minimize): <span class="math">\(\text{Loss} = \text{BCE}(x, p) + KL(q_{\phi}(z|x) || p(z))\)</span></p></li>
+</ul>
+<p><br /></p>
+<p>I put together a <a class="reference external" href="https://github.com/nzxhuong/learnin_testin/blob/main/Notebooks/Simple_Pytorch_Variational_Autoencoder.ipynb">notebook</a> (there's a typo in the notebook, just ignore it pls!) using PyTorch to build this VAE. The notebook adapts the implementation by <a class="reference external" href="https://dfdazac.github.io/01-vae.html">dfdazac</a>.</p>
+<p>The figure below shows a sample of digits I generated using 20 latent variables (<span class="math">\(z\)</span>):</p>
+<div class="figure align-center">
+<img alt="MNIST digits generated from a variational autoencoder model" src="/images/vae_samples.png" style="height: 350px;" />
+<p class="caption">MNIST digits generated from a variational autoencoder model.</p>
+</div>
+<p>Tbh, my cat could paint better handwriting with a brush. Some of the digits have a decent shape, but most are weird ones (maybe stuck between digit types in the latent space, or just not trained long enough?).</p>
+<p>I hope you enjoyed the post, I know I did enjoy writing (and learning) it!</p>
+<p><br /></p>
+<dl class="footnote brackets">
+<dt class="label" id="id2"><span class="brackets"><a class="fn-backref" href="#id1">1</a></span></dt>
+<dd><p>The derivation for the <span class="math">\(KL\)</span> divergence between two multivariate Gaussians can be found in the original VAE paper or many online resources.</p>
+</dd>
+</dl>
