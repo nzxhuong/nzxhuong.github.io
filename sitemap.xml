@@ -15,15 +15,19 @@
  </url>
  <url>
   <loc>https://nzxhuong.github.io/archive.html</loc>
-  <lastmod>2025-04-09T05:58:00Z</lastmod>
+  <lastmod>2025-04-12T18:36:00Z</lastmod>
  </url>
  <url>
   <loc>https://nzxhuong.github.io/categories/</loc>
-  <lastmod>2025-04-07T17:37:00Z</lastmod>
+  <lastmod>2025-04-12T18:38:00Z</lastmod>
  </url>
  <url>
   <loc>https://nzxhuong.github.io/categories/entropy/</loc>
   <lastmod>2025-04-01T17:29:00Z</lastmod>
+ </url>
+ <url>
+  <loc>https://nzxhuong.github.io/categories/generative-models/</loc>
+  <lastmod>2025-04-12T18:38:00Z</lastmod>
  </url>
  <url>
   <loc>https://nzxhuong.github.io/categories/importance-sampling/</loc>
@@ -50,6 +54,10 @@
   <lastmod>2025-04-02T13:33:00Z</lastmod>
  </url>
  <url>
+  <loc>https://nzxhuong.github.io/categories/variational-autoencoders/</loc>
+  <lastmod>2025-04-12T18:38:00Z</lastmod>
+ </url>
+ <url>
   <loc>https://nzxhuong.github.io/galleries/</loc>
   <lastmod>2025-03-31T17:21:00Z</lastmod>
  </url>
@@ -64,5 +72,9 @@
  <url>
   <loc>https://nzxhuong.github.io/posts/understanding-shannon-information-and-entropy/</loc>
   <lastmod>2025-04-01T17:27:00Z</lastmod>
+ </url>
+ <url>
+  <loc>https://nzxhuong.github.io/posts/variational-autoencoders/</loc>
+  <lastmod>2025-04-12T18:36:00Z</lastmod>
  </url>
 </urlset>

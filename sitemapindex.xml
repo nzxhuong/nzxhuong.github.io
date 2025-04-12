@@ -10,6 +10,10 @@
   <lastmod>2025-04-01T18:02:00Z</lastmod>
  </sitemap>
  <sitemap>
+  <loc>https://nzxhuong.github.io/categories/generative-models.xml</loc>
+  <lastmod>2025-04-12T18:38:00Z</lastmod>
+ </sitemap>
+ <sitemap>
   <loc>https://nzxhuong.github.io/categories/importance-sampling.xml</loc>
   <lastmod>2025-04-07T17:36:00Z</lastmod>
  </sitemap>
@@ -19,7 +23,7 @@
  </sitemap>
  <sitemap>
   <loc>https://nzxhuong.github.io/categories/mathjax.xml</loc>
-  <lastmod>2025-04-07T17:36:00Z</lastmod>
+  <lastmod>2025-04-12T18:38:00Z</lastmod>
  </sitemap>
  <sitemap>
   <loc>https://nzxhuong.github.io/categories/prioritized-experience-replay.xml</loc>
@@ -34,15 +38,19 @@
   <lastmod>2025-04-07T17:36:00Z</lastmod>
  </sitemap>
  <sitemap>
+  <loc>https://nzxhuong.github.io/categories/variational-autoencoders.xml</loc>
+  <lastmod>2025-04-12T18:38:00Z</lastmod>
+ </sitemap>
+ <sitemap>
   <loc>https://nzxhuong.github.io/galleries/rss.xml</loc>
   <lastmod>2025-04-09T05:58:00Z</lastmod>
  </sitemap>
  <sitemap>
   <loc>https://nzxhuong.github.io/rss.xml</loc>
-  <lastmod>2025-04-07T17:36:00Z</lastmod>
+  <lastmod>2025-04-12T18:38:00Z</lastmod>
  </sitemap>
  <sitemap>
   <loc>https://nzxhuong.github.io/sitemap.xml</loc>
-  <lastmod>2025-04-09T05:58:00Z</lastmod>
+  <lastmod>2025-04-12T18:38:00Z</lastmod>
  </sitemap>
 </sitemapindex>
